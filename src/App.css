@@ -36,3 +36,14 @@
     transform: rotate(360deg);
   }
 }
+
+
+
+.custom-background {
+  background-image: url('/public/평온.jpg');
+  background-size: cover;
+  background-position: center;
+  width: 100%;
+  height: 100vh;
+  
+}
