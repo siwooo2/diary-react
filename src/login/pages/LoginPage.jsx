@@ -47,7 +47,7 @@ function LoginPage(){
 
 
     return(
-        <div className="custom-background">
+        <div className="default">
             <div style={{ padding: "150px", textAlign:"center"}}>
                 <h1 style={{fontSize:'4rem',
                     color: 'black',

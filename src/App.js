@@ -1,11 +1,12 @@
 
-import './App.css';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
-import LoginPage from './login/pages/LoginPage';
-import SignUpPage from './signup/pages/SignUpPage';
-import NaviPage from './navibar/pages/NaviPage';
+import './App.css';
 import HomePage from './home/pages/HomePage';
+import LoginPage from './login/pages/LoginPage';
+import NaviPage from './navibar/pages/NaviPage';
+import SignUpPage from './signup/pages/SignUpPage';
 import ToDosPage from './todos/pages/ToDosPage';
+import ToDosSearch from './todos/pages/ToDosSearch';
 
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
         <Route path="/login" element={<LoginPage/>}/>
         <Route path="/signup" element={<SignUpPage/>}/>
         <Route path="/todos/:id" element={<ToDosPage/>}/>
+        <Route path="/search/:id" element={<ToDosSearch/>}/>
       </Routes>
     </BrowserRouter>
   );

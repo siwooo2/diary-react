@@ -88,7 +88,7 @@ function SignUpPage() {
 
 
     return (
-        <div className="custom-background">
+        <div className="default">
             <div style={{ padding: "100px", textAlign: "center" }}>
                 <h1 style={{
                     fontSize: '4rem',

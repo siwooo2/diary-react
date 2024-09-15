@@ -1,13 +1,18 @@
-import { useParams } from "react-router-dom";
-import api from "../../api/axios";
 import { useEffect, useState } from "react";
-import ToDoList from "../list/ToDoList";
 import DatePicker from "react-datepicker";
+import { FaRegSmile } from "react-icons/fa";
+import { FiAlertTriangle } from "react-icons/fi";
 import { SlArrowLeft, SlArrowRight } from "react-icons/sl";
+import { TiWeatherCloudy, TiWeatherDownpour, TiWeatherNight, TiWeatherPartlySunny, TiWeatherSnow, TiWeatherSunny } from "react-icons/ti";
+import { useNavigate, useParams } from "react-router-dom";
+import api from "../../api/axios";
+import ToDoList from "../list/ToDoList";
 
 
 
 function ToDosPage() {
+
+    const navigate = useNavigate();
 
     const { id } = useParams();
     const [content, setContent] = useState('');
@@ -17,9 +22,13 @@ function ToDosPage() {
     const [year, setYear] = useState('');
     const [month, setMonth] = useState('');
     const [day, setDay] = useState('');
-    const [time, setTime] = useState(`${new Date().getHours()}:${new Date().getMinutes()}`);
+    const [time, setTime] = useState(`${new Date().getHours().toString().padStart(2,"0")}:${new Date().getMinutes().toString().padStart(2,"0")}`);
     const [calDate, setCalDate] = useState(new Date());
-
+    const [basedate, setBasedate] = useState(`${new Date().getFullYear()}${(new Date().getMonth()+1).toString().padStart(2,"0")}${(new Date().getDate()-1).toString().padStart(2,"0")}`)
+    const [weatherAry, setWeatherAry] = useState([]);
+    const [todayWeather, setTodayWeather] = useState();
+    const [loading, setLoading] = useState(false);      //화면 로딩 시간
+    const [addDate, setAddDate] = useState(startDate);
 
     const timeHandler = (e) => {
         setTime(e.target.value)
@@ -42,7 +51,10 @@ function ToDosPage() {
 
     useEffect(() => {
         if (day) {
-            getToDo()
+            getToDo();
+        }
+        if(weatherAry.length>0){
+            changeWeather();
         }
     }, [day])
 
@@ -53,6 +65,16 @@ function ToDosPage() {
             setToDoBtn(true)
         }
     }, [content])
+
+    useEffect(()=>{
+        getWeather();
+    },[basedate])
+
+    useEffect(()=>{
+        if(weatherAry.length>0){
+            changeWeather();
+        }
+    },[weatherAry])
 
 
     const getToDo = async () => {
@@ -89,13 +111,17 @@ function ToDosPage() {
                     const data = {
                         userid: id,
                         content: content,
-                        date: startDate,
+                        date: addDate,
                         time: time
                     }
                     await api.post('api/savetodo', data)
                     setContent('')
                     getToDo();
-                    setTime(`${new Date().getHours()}:${new Date().getMinutes()}`)
+                    setYear(startDate.getFullYear());
+                    setMonth(startDate.getMonth());
+                    setDay(startDate.getDate());
+                    setTime(`${new Date().getHours().toString().padStart(2,"0")}:${new Date().getMinutes().toString().padStart(2,"0")}`)
+                    alert('리스트에 추가되었습니다')
                 } catch (error) {
                     console.log(error)
                 }
@@ -121,6 +147,44 @@ function ToDosPage() {
         }
     }
 
+    const getWeather = async () => {
+        try{
+            const setTime = setTimeout(moveHome,10000)
+            const response = await api.get(`api/weather?base_date=${basedate}&base_time=0500`)
+            setWeatherAry(response.data);
+            setLoading(true);
+            clearTimeout(setTime);
+        }catch(err){
+            console.log(err);
+        }
+    }
+
+    const changeWeather = () => {
+        const changeDate = `${startDate.getFullYear()}${(startDate.getMonth()+1).toString().padStart(2,"0")}${startDate.getDate().toString().padStart(2,"0")}`
+        const getSKY = weatherAry.find(item => item.category==="SKY" && item.fcstDate===changeDate && item.fcstTime===`${startDate.getHours().toString().padStart(2,"0")}00`);
+        const getPTY = weatherAry.find(item => item.category==="PTY" && item.fcstDate===changeDate && item.fcstTime===`${startDate.getHours().toString().padStart(2,"0")}00`);
+        if(getSKY && getPTY){
+            const sky =  getSKY.fcstValue;
+            const pty =  getPTY.fcstValue;
+            setTodayWeather("rain")
+                if(pty == 1 || pty == 2 || pty == 4){
+            }else if(pty == 3){
+                setTodayWeather("snow")
+            }else{
+                if(sky == 1){
+                    setTodayWeather("clean")
+                } else if(sky == 3){
+                    setTodayWeather("partCloud")
+                }else{
+                    setTodayWeather("cloud")
+                }
+            }
+
+        } else{
+            setTodayWeather("no")
+        }
+    }
+        
 
     const leftBtn = () => {
         conDate(-1)
@@ -144,34 +208,72 @@ function ToDosPage() {
         setDay(calDate.getDate());
     }
 
+    const moveSearch = () => {
+        navigate(`/search/${id}`)
+    }
+
+    const moveToday = () => {
+        const today = new Date();
+        setStartDate(today);
+        setYear(today.getFullYear());
+        setMonth(today.getMonth());
+        setDay(today.getDate());
+    }
+
+    const moveHome = () => {
+        navigate('/')
+        alert("로딩에 실패하여 홈으로 돌아갑니다. 다시 시도해 주세요")
+    }
+
+    const settingAddDate = () => {
+        setAddDate(startDate)
+    }
+
 
     return (
-        <div className="custom-background" style={{}}>
+        <div className={`default`}>
             <div className="container">
-
-                <div className="row g-3" style={{}}>
-                    <p />
-                    <div className="row justify-content-center" >
-                        <div style={{ textAlign: 'center', }}>
+                <div className="row g-3">
+                    {loading?(
+                    <div className="d-flex flex-column align-items-center" >
+                        <div style={{ textAlign: 'center', width:'300px'}}>
                             <p />
-                            <p style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: 'Georgia, serif', textShadow: '3px 6px 3px gray' }}>To Do List</p>
+                            <div style={{fontSize:'40px', marginTop:'20px'}}>
+                                {todayWeather==="no"?<FaRegSmile/>:""}
+                                {todayWeather==="clean"?<TiWeatherSunny/>:""}
+                                {todayWeather==="partCloud"?<TiWeatherPartlySunny/>:""}
+                                {todayWeather==="cloud"?<TiWeatherCloudy/>:""}
+                                {todayWeather==="rain"?<TiWeatherDownpour/>:""}
+                                {todayWeather==="snow"?<TiWeatherSnow/>:""}
+                                {todayWeather==="night"?<TiWeatherNight/>:""}
+                            </div>
+                            <p style={{ fontSize: '3rem', fontWeight: 'bold', fontFamily: 'Georgia, serif', textShadow: '3px 6px 3px gray', cursor:'pointer' }}  onClick={moveToday}>To Do List</p>
                         </div>
 
                         <form className="input-group mb-3" style={{ width: '600px', }} onSubmit={contentForm}>
                             <input type="text"
                                 className="form-control"
                                 placeholder="내용을 입력해 주세요"
-                                style={{ height: '50px', border: '1px solid gray', backgroundColor: 'rgba(255, 255, 255, 0.5)' }}
+                                style={{ height: '50px', border: '1px solid gray', backgroundColor: 'rgba(255, 255, 255, 0.5)', borderRadius:'10px', }}
                                 value={content}
                                 onChange={contentHandler}
                             />
+                            &nbsp;&nbsp;
                             <button className="btn btn-outline-secondary"
                                 type="submit"
-                                style={{ color: '#393939', fontWeight: 'bold' }}
+                                style={{ color: '#393939', fontWeight: 'bold' , borderRadius:'10px'}}
                                 data-bs-toggle="modal"
                                 data-bs-target="#dateModal"
                                 disabled={toDoBtn}
+                                onClick={settingAddDate}
                             >추가</button>
+                            &nbsp;&nbsp;
+                            <button type="button" 
+                                className="btn btn-outline-dark" 
+                                style={{borderRadius:'10px', color: '#393939', fontWeight: 'bold',}} 
+                                onClick={moveSearch}
+                            >SEARCH
+                            </button> 
                         </form>
                         <p />
                         <button data-bs-toggle="modal"
@@ -179,51 +281,93 @@ function ToDosPage() {
                             className="btn btn-secondary"
                             style={{ width: '100px', height: '32px', fontSize: '14px', borderRadius: '30px', fontWeight: 'bold' }}>날짜 선택</button>
                         <p />
-                        <div style={{ display: 'flex', justifyContent: 'space-around', }}>
-                            <SlArrowLeft style={{ fontSize: '24px', cursor: 'pointer', }} onClick={leftBtn} />
+                        <div style={{ display: 'flex', justifyContent: 'center', }}>
+                            <div style={{ marginRight: '150px', marginTop: '3px' }}>
+                                <SlArrowLeft style={{ fontSize: '24px', cursor: 'pointer', }} onClick={leftBtn} />
+                            </div>
                             <p style={{ fontSize: '20px', fontWeight: 'bold' }}>{year}년 {month + 1}월 {day}일</p>
-                            <SlArrowRight style={{ fontSize: '24px', cursor: 'pointer' }} onClick={rightBtn} />
+                            <div style={{ marginLeft: '150px', marginTop: '3px' }}>
+                                <SlArrowRight style={{ fontSize: '24px', cursor: 'pointer' }} onClick={rightBtn} />
+                            </div>
                         </div>
                         <p />
                         <div className="d-flex justify-content-center">
                             <ul className="list-group " >
-                                <div style={{ maxHeight: '350px', overflowY: 'auto' }}>
+                                <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                                     {toDos.length > 0 ?
-                                        toDos.map((item) => (<ToDoList key={item.id}
-                                            id={item.id}
-                                            content={item.content}
-                                            completed={item.completed}
-                                            userid={id}
-                                            getToDo={getToDo}
-                                            special={item.special}
-                                            time={item.time} />)) :
-                                        <div style={{ textAlign: 'center', }}>오늘의 일정이 없습니다</div>}
+                                        toDos.map((item) => (
+                                            <div style={{marginRight:'10px'}}>
+                                                <ToDoList 
+                                                key={item.id}
+                                                id={item.id}
+                                                content={item.content}
+                                                completed={item.completed}
+                                                userid={id}
+                                                getToDo={getToDo}
+                                                special={item.special}
+                                                time={item.time} 
+                                                />
+                                            </div>
+                                        )) :
+                                        <div style={{ textAlign: 'center', }}>오늘의 일정이 없습니다</div>
+                                    }
                                 </div>
                                 <br />
                                 <button className="btn btn-secondary"
                                     type="button"
                                     style={{ width: '500px', height: '50px', borderRadius: '40px', fontSize: '20px', }}
                                     data-bs-toggle="modal"
-                                    data-bs-target="#exampleModal" >Clear</button>
+                                    data-bs-target="#exampleModal" >Clear
+                                </button>
                             </ul>
                         </div>
                     </div>
+                     ):(
+                        <div className="default"
+                            style={{
+                                position: 'fixed', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                left: 0, 
+                                top: 0,
+                                width: '100%',
+                                height: '100%',
+                                marginTop:'72px'
+                            }} 
+                        >
+                            <div className="spinner-grow text-dark" style={{width:'2rem', height:'2rem', marginBottom:'150px'}} role="status">
+                            <span className="visually-hidden">Loading...</span>
+                            </div>
+                            &nbsp;
+                            <div className="spinner-grow text-dark" style={{width:'2rem', height:'2rem', marginBottom:'150px'}} role="status">
+                            <span className="visually-hidden">Loading...</span>
+                            </div>
+                            &nbsp;
+                            <div className="spinner-grow text-dark" style={{width:'2rem', height:'2rem', marginBottom:'150px'}} role="status">
+                            <span className="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
+               
 
                 {/* 일정 삭제 모달창 */}
-                <div className="modal fade" id="exampleModal" aria-labelledby="exampleModalLabel" aria-hidden="true" style={{ marginTop: '200px' }}>
+                <div className="modal fade" id="exampleModal" aria-labelledby="exampleModalLabel" aria-hidden="true" style={{ marginTop: '250px' }}>
                     <div className="modal-dialog" style={{ display: 'flex', justifyContent: 'center' }} >
-                        <div className="modal-content" style={{ borderRadius: '20px' }} >
+                        <div className="modal-content" style={{ borderRadius: '40px' }} >
                             <div style={{ textAlign: 'center' }}>
                                 <br />
+                                <FiAlertTriangle style={{fontSize:'40px'}}/>
+                                <p />
                                 <div style={{}}>
                                     모든 일정을 정말 다 지우시겠어요?<br />
                                     맞다면 확인, 아니라면 취소를 눌러주세요
                                 </div>
                                 <p />
-                                <button type="button" className="btn btn-secondary" data-bs-dismiss="modal" style={{ width: '150px', height: '40px' }}>취소</button>
+                                <button type="button" className="btn btn-secondary" data-bs-dismiss="modal" style={{ width: '150px', height: '40px', borderRadius:'20px'  }}>취소</button>
                                 &nbsp;
-                                <button type="button" className="btn btn-primary" style={{ width: '150px', height: '40px' }} data-bs-dismiss="modal" onClick={allRemove}>확인</button>
+                                <button type="button" className="btn btn-danger" style={{ width: '150px', height: '40px', borderRadius:'20px' }} data-bs-dismiss="modal" onClick={allRemove}>확인</button>
                                 <p />
                             </div>
                         </div>
@@ -231,7 +375,7 @@ function ToDosPage() {
                 </div>
 
                 {/* 일정 추가 모달창 */}
-                <div className="modal fade" id="dateModal" aria-labelledby="exampleModalLabel" tabIndex="-1" aria-hidden="true" style={{ marginTop: '200px' }}>
+                <div className="modal fade" id="dateModal" aria-labelledby="exampleModalLabel" tabIndex="-1" aria-hidden="true" style={{ marginTop: '250px' }}>
                     <div className="modal-dialog" style={{ display: 'flex', justifyContent: 'center' }} >
                         <div className="modal-content" style={{ borderRadius: '20px', width: '400px' }} >
                             <div style={{ textAlign: 'center' }}>
@@ -245,7 +389,7 @@ function ToDosPage() {
                                 <p />
                                 날짜:
                                 &nbsp;
-                                <DatePicker selected={startDate} onChange={(date) => setStartDate(date)} />
+                                <DatePicker selected={addDate} onChange={(date) => setAddDate(date)} />
                                 <p />
                                 시간:
                                 &nbsp;
@@ -279,9 +423,10 @@ function ToDosPage() {
                         </div>
                     </div>
                 </div>
-
+    
             </div>
         </div>
+        
     )
 }
 
