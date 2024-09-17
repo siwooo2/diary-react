@@ -32,22 +32,26 @@ function ToDosSearch(){
         setContent(e.target.value)
     }
 
+    // 시간별 정렬 함수
     const sortByTime = (a, b) => {
         const timeA = new Date(`${a.date}T${a.time}`);
         const timeB = new Date(`${b.date}T${b.time}`);
         return timeA - timeB;
     };
 
+    // 이름별 정렬 함수
     const sortByName = (a, b) => {
         const nameA = a.content;
         const nameB = b.content;
         return nameA.localeCompare(nameB)
     }
 
+    // 전체 삭제
     const allRemove = async () => {
         try {
             const response = await api.delete(`api/alldeletetodo?id=${id}`)
             if (response.data) {
+                onSearch();
             } else {
                 alert('전체 삭제 중 오류가 발생했습니다')
             }
@@ -66,10 +70,13 @@ function ToDosSearch(){
             }
             const response = await api.get('api/searchtodo', {params: data})
             if(currentSort === 'reg'){
+                // 등록순 정렬
                 setToDos(response.data);
             } else if (currentSort === 'name'){
+                // 이름순 정렬
                 setToDos(response.data.sort(sortByName));
             } else {
+                // 시간순 정렬
                 setToDos(response.data.sort(sortByTime));
             }
             
@@ -86,8 +93,6 @@ function ToDosSearch(){
         navigate(-1)
     }
 
-   
-    
 
     return(
         <div className={`default`}>
@@ -132,9 +137,8 @@ function ToDosSearch(){
                                 <div style={{ maxHeight: '400px', overflowY: 'auto' ,}}>
                                     {toDos.length > 0 ?
                                         toDos.map((item) => (
-                                            <div style={{marginRight:'10px'}}>
+                                            <div style={{marginRight:'10px'}} key={item.id}>
                                                 <SearchList 
-                                                key={item.id}
                                                 id={item.id}
                                                 content={item.content}
                                                 completed={item.completed}

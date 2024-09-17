@@ -23,13 +23,17 @@ function ToDosPage() {
     const [month, setMonth] = useState('');
     const [day, setDay] = useState('');
     const [time, setTime] = useState(`${new Date().getHours().toString().padStart(2,"0")}:${new Date().getMinutes().toString().padStart(2,"0")}`);
-    const [calDate, setCalDate] = useState(new Date());
-    const [basedate, setBasedate] = useState(`${new Date().getFullYear()}${(new Date().getMonth()+1).toString().padStart(2,"0")}${(new Date().getDate()-1).toString().padStart(2,"0")}`)
+    const [calDate, setCalDate] = useState(new Date());     // 날짜 선택 달력 
+    const [basedate, setBasedate] = useState(new Date().getHours() >= 5 ? 
+        `${new Date().getFullYear()}${(new Date().getMonth()+1).toString().padStart(2,"0")}${(new Date().getDate()).toString().padStart(2,"0")}` : 
+        `${new Date().getFullYear()}${(new Date().getMonth()+1).toString().padStart(2,"0")}${(new Date().getDate()-1).toString().padStart(2,"0")}`
+    )
     const [weatherAry, setWeatherAry] = useState([]);
-    const [todayWeather, setTodayWeather] = useState();
-    const [loading, setLoading] = useState(false);      //화면 로딩 시간
+    const [todayWeather, setTodayWeather] = useState('');
+    const [loading, setLoading] = useState(false);      //화면 로딩 상태
     const [addDate, setAddDate] = useState(startDate);
 
+    
     const timeHandler = (e) => {
         setTime(e.target.value)
     }
@@ -38,15 +42,14 @@ function ToDosPage() {
         setContent(e.target.value)
     }
 
+    // 화면 리로딩 방지
     const contentForm = (e) => [
         e.preventDefault()
     ]
 
 
     useEffect(() => {
-        setYear(startDate.getFullYear())
-        setMonth(startDate.getMonth())
-        setDay(startDate.getDate())
+        setDate(startDate);
     }, [])
 
     useEffect(() => {
@@ -87,6 +90,7 @@ function ToDosPage() {
                 day: day
             }
 
+            // 날짜 정렬 기능(오름차순)
             const sortByTime = (a, b) => {
                 const timeA = new Date(`1970-01-01T${a.time}`);
                 const timeB = new Date(`1970-01-01T${b.time}`);
@@ -94,7 +98,6 @@ function ToDosPage() {
             };
 
             const response = await api.get(`api/gettodo`, { params: data });
-            setToDos(response.data);
             const firstToDos = response.data.filter(item => item.special === true).sort(sortByTime)
             const secondToDos = response.data.filter(item => item.special === false).sort(sortByTime)
             setToDos([...firstToDos, ...secondToDos])
@@ -117,9 +120,7 @@ function ToDosPage() {
                     await api.post('api/savetodo', data)
                     setContent('')
                     getToDo();
-                    setYear(startDate.getFullYear());
-                    setMonth(startDate.getMonth());
-                    setDay(startDate.getDate());
+                    setDate(startDate);
                     setTime(`${new Date().getHours().toString().padStart(2,"0")}:${new Date().getMinutes().toString().padStart(2,"0")}`)
                     alert('리스트에 추가되었습니다')
                 } catch (error) {
@@ -159,15 +160,27 @@ function ToDosPage() {
         }
     }
 
+    const formatTime = (t) => {
+        return `${t.getHours().toString().padStart(2,"0")}00`
+    }
+
     const changeWeather = () => {
         const changeDate = `${startDate.getFullYear()}${(startDate.getMonth()+1).toString().padStart(2,"0")}${startDate.getDate().toString().padStart(2,"0")}`
-        const getSKY = weatherAry.find(item => item.category==="SKY" && item.fcstDate===changeDate && item.fcstTime===`${startDate.getHours().toString().padStart(2,"0")}00`);
-        const getPTY = weatherAry.find(item => item.category==="PTY" && item.fcstDate===changeDate && item.fcstTime===`${startDate.getHours().toString().padStart(2,"0")}00`);
+        console.log(weatherAry)
+        console.log(changeDate)
+        console.log(formatTime(startDate))
+
+        const getSKY = weatherAry.find(item => item.category==="SKY" && item.fcstDate===changeDate && item.fcstTime===(new Date().getHours() < 5 ? "0000" : formatTime(startDate)))
+        const getPTY = weatherAry.find(item => item.category==="PTY" && item.fcstDate===changeDate && item.fcstTime===(new Date().getHours() < 5 ? "0000" : formatTime(startDate)))
         if(getSKY && getPTY){
             const sky =  getSKY.fcstValue;
             const pty =  getPTY.fcstValue;
-            setTodayWeather("rain")
-                if(pty == 1 || pty == 2 || pty == 4){
+
+            console.log(sky)
+            console.log(pty)
+            
+            if(pty == 1 || pty == 2 || pty == 4){
+                setTodayWeather("rain")
             }else if(pty == 3){
                 setTodayWeather("snow")
             }else{
@@ -194,18 +207,20 @@ function ToDosPage() {
         conDate(+1)
     }
 
+    const setDate =(d) => {
+        setYear(d.getFullYear());
+        setMonth(d.getMonth());
+        setDay(d.getDate());
+    }    
+
     const conDate = (num) => {
         startDate.setDate(startDate.getDate() + num);
-        setYear(startDate.getFullYear());
-        setMonth(startDate.getMonth());
-        setDay(startDate.getDate());
+        setDate(startDate);
     }
 
     const calendar = () => {
         setStartDate(calDate)
-        setYear(calDate.getFullYear());
-        setMonth(calDate.getMonth());
-        setDay(calDate.getDate());
+        setDate(calDate);
     }
 
     const moveSearch = () => {
@@ -215,9 +230,7 @@ function ToDosPage() {
     const moveToday = () => {
         const today = new Date();
         setStartDate(today);
-        setYear(today.getFullYear());
-        setMonth(today.getMonth());
-        setDay(today.getDate());
+        setDate(startDate);
     }
 
     const moveHome = () => {
@@ -296,16 +309,15 @@ function ToDosPage() {
                                 <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                                     {toDos.length > 0 ?
                                         toDos.map((item) => (
-                                            <div style={{marginRight:'10px'}}>
+                                            <div style={{marginRight:'10px'}} key={item.id}>
                                                 <ToDoList 
-                                                key={item.id}
-                                                id={item.id}
-                                                content={item.content}
-                                                completed={item.completed}
-                                                userid={id}
-                                                getToDo={getToDo}
-                                                special={item.special}
-                                                time={item.time} 
+                                                    id={item.id}
+                                                    content={item.content}
+                                                    completed={item.completed}
+                                                    userid={id}
+                                                    getToDo={getToDo}
+                                                    special={item.special}
+                                                    time={item.time} 
                                                 />
                                             </div>
                                         )) :
