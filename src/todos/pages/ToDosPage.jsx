@@ -24,14 +24,19 @@ function ToDosPage() {
     const [day, setDay] = useState('');
     const [time, setTime] = useState(`${new Date().getHours().toString().padStart(2,"0")}:${new Date().getMinutes().toString().padStart(2,"0")}`);
     const [calDate, setCalDate] = useState(new Date());     // 날짜 선택 달력 
-    const [basedate, setBasedate] = useState(new Date().getHours() >= 5 ? 
+    const [basedate, setBasedate] = useState(new Date().getHours() >= 6 ? 
         `${new Date().getFullYear()}${(new Date().getMonth()+1).toString().padStart(2,"0")}${(new Date().getDate()).toString().padStart(2,"0")}` : 
         `${new Date().getFullYear()}${(new Date().getMonth()+1).toString().padStart(2,"0")}${(new Date().getDate()-1).toString().padStart(2,"0")}`
     )
+    const [tmFc, setTmFc] = useState(new Date().getHours() >= 6 ? 
+    `${new Date().getFullYear()}${(new Date().getMonth()+1).toString().padStart(2,"0")}${(new Date().getDate()).toString().padStart(2,"0")}0600` : 
+    `${new Date().getFullYear()}${(new Date().getMonth()+1).toString().padStart(2,"0")}${(new Date().getDate()-1).toString().padStart(2,"0")}0600`
+)
     const [weatherAry, setWeatherAry] = useState([]);
     const [todayWeather, setTodayWeather] = useState('');
     const [loading, setLoading] = useState(false);      //화면 로딩 상태
     const [addDate, setAddDate] = useState(startDate);
+    const [weatherMdData, setWeatherMdData] = useState('');
 
     
     const timeHandler = (e) => {
@@ -71,7 +76,7 @@ function ToDosPage() {
 
     useEffect(()=>{
         getWeather();
-    },[basedate])
+    },[basedate, tmFc])
 
     useEffect(()=>{
         if(weatherAry.length>0){
@@ -148,11 +153,15 @@ function ToDosPage() {
         }
     }
 
+    
+
     const getWeather = async () => {
         try{
             const setTime = setTimeout(moveHome,10000)
             const response = await api.get(`api/weather?base_date=${basedate}&base_time=0500`)
+            const response02 = await api.get(`api/weathermd?tmFc=${tmFc}`)
             setWeatherAry(response.data);
+            setWeatherMdData(response02.data);
             setLoading(true);
             clearTimeout(setTime);
         }catch(err){
@@ -160,44 +169,107 @@ function ToDosPage() {
         }
     }
 
+    
+
     const formatTime = (t) => {
         return `${t.getHours().toString().padStart(2,"0")}00`
     }
 
     const changeWeather = () => {
         const changeDate = `${startDate.getFullYear()}${(startDate.getMonth()+1).toString().padStart(2,"0")}${startDate.getDate().toString().padStart(2,"0")}`
-        console.log(weatherAry)
-        console.log(changeDate)
-        console.log(formatTime(startDate))
 
-        const getSKY = weatherAry.find(item => item.category==="SKY" && item.fcstDate===changeDate && item.fcstTime===(new Date().getHours() < 5 ? "0000" : formatTime(startDate)))
-        const getPTY = weatherAry.find(item => item.category==="PTY" && item.fcstDate===changeDate && item.fcstTime===(new Date().getHours() < 5 ? "0000" : formatTime(startDate)))
-        if(getSKY && getPTY){
-            const sky =  getSKY.fcstValue;
-            const pty =  getPTY.fcstValue;
+        const subDate = startDate.getDate() - new Date().getDate();
 
-            console.log(sky)
-            console.log(pty)
-            
-            if(pty == 1 || pty == 2 || pty == 4){
-                setTodayWeather("rain")
-            }else if(pty == 3){
-                setTodayWeather("snow")
-            }else{
-                if(sky == 1){
-                    setTodayWeather("clean")
-                } else if(sky == 3){
-                    setTodayWeather("partCloud")
+        if(new Date().getHours < 6){
+            subDate = subDate-1;
+        }
+        
+        const forecast07 = `wf${subDate}Pm`
+        const forecast10 = `wf${subDate}`
+
+        const getSKY = weatherAry.find(item => item.category==="SKY" && item.fcstDate===changeDate && item.fcstTime===(new Date().getHours() < 6 ? "0000" : formatTime(startDate)))
+        const getPTY = weatherAry.find(item => item.category==="PTY" && item.fcstDate===changeDate && item.fcstTime===(new Date().getHours() < 6 ? "0000" : formatTime(startDate)))
+
+        if(subDate >=0 && subDate < 3){
+            if(getSKY && getPTY){
+                const sky =  getSKY.fcstValue;
+                const pty =  getPTY.fcstValue;
+    
+                if(pty == 1 || pty == 2 || pty == 4){
+                    setTodayWeather("rain")
+                }else if(pty == 3){
+                    setTodayWeather("snow")
                 }else{
-                    setTodayWeather("cloud")
+                    if(sky == 1){
+                        setTodayWeather("clean")
+                    } else if(sky == 3){
+                        setTodayWeather("partCloud")
+                    }else if(sky == 4){
+                        setTodayWeather("cloud")
+                    }
                 }
-            }
 
+            }
+        } else if (subDate < 8 && subDate >= 3){
+            if(weatherMdData[forecast07]=="맑음"){
+                setTodayWeather("clean")
+            } else if (weatherMdData[forecast07]=="구름많음"){
+                setTodayWeather("partCloud")
+            } else if (weatherMdData[forecast07]=="구름많고 비"){
+                setTodayWeather("rain")
+            } else if (weatherMdData[forecast07]=="구름많고 눈"){
+                setTodayWeather("snow")
+            } else if (weatherMdData[forecast07]=="구름많고 비/눈"){
+                setTodayWeather("rain")
+            } else if (weatherMdData[forecast07]=="구름많고 소나기"){
+                setTodayWeather("rain")
+            } else if (weatherMdData[forecast07]=="흐림"){
+                setTodayWeather("cloud")
+            } else if (weatherMdData[forecast07]=="흐리고 비"){
+                setTodayWeather("rain")
+            } else if (weatherMdData[forecast07]=="흐리고 눈"){
+                setTodayWeather("snow")
+            } else if (weatherMdData[forecast07]=="흐리고 비/눈"){
+                setTodayWeather("rain")
+            } else if (weatherMdData[forecast07]=="흐리고 소나기"){
+                setTodayWeather("rain")
+            } else if (weatherMdData[forecast07]=="소나기"){
+                setTodayWeather("rain")
+            } 
+        }else if(subDate >= 8 && subDate < 11){
+            if(weatherMdData[forecast10]=="맑음"){
+                setTodayWeather("clean")
+            } else if (weatherMdData[forecast10]=="구름많음"){
+                setTodayWeather("partCloud")
+            } else if (weatherMdData[forecast10]=="구름많고 비"){
+                setTodayWeather("rain")
+            } else if (weatherMdData[forecast10]=="구름많고 눈"){
+                setTodayWeather("snow")
+            } else if (weatherMdData[forecast10]=="구름많고 비/눈"){
+                setTodayWeather("rain")
+            } else if (weatherMdData[forecast10]=="구름많고 소나기"){
+                setTodayWeather("rain")
+            } else if (weatherMdData[forecast10]=="흐림"){
+                setTodayWeather("cloud")
+            } else if (weatherMdData[forecast10]=="흐리고 비"){
+                setTodayWeather("rain")
+            } else if (weatherMdData[forecast10]=="흐리고 눈"){
+                setTodayWeather("snow")
+            } else if (weatherMdData[forecast10]=="흐리고 비/눈"){
+                setTodayWeather("rain")
+            } else if (weatherMdData[forecast10]=="흐리고 소나기"){
+                setTodayWeather("rain")
+            } else if (weatherMdData[forecast10]=="소나기"){
+                setTodayWeather("rain")
+            } 
         } else{
             setTodayWeather("no")
         }
-    }
+
         
+    }
+
+    
 
     const leftBtn = () => {
         conDate(-1)
