@@ -178,11 +178,13 @@ function ToDosPage() {
     const changeWeather = () => {
         const changeDate = `${startDate.getFullYear()}${(startDate.getMonth()+1).toString().padStart(2,"0")}${startDate.getDate().toString().padStart(2,"0")}`
 
-        const subDate = startDate.getDate() - new Date().getDate();
+        let subDate = startDate.getDate() - new Date().getDate();
 
-        if(new Date().getHours < 6){
-            subDate = subDate-1;
+        if(new Date().getHours() < 6){
+            subDate = subDate+1;
         }
+        
+        console.log(subDate)
         
         const forecast07 = `wf${subDate}Pm`
         const forecast10 = `wf${subDate}`
@@ -190,10 +192,13 @@ function ToDosPage() {
         const getSKY = weatherAry.find(item => item.category==="SKY" && item.fcstDate===changeDate && item.fcstTime===(new Date().getHours() < 6 ? "0000" : formatTime(startDate)))
         const getPTY = weatherAry.find(item => item.category==="PTY" && item.fcstDate===changeDate && item.fcstTime===(new Date().getHours() < 6 ? "0000" : formatTime(startDate)))
 
-        if(subDate >=0 && subDate < 3){
+        if(subDate >= 0 && subDate < 3){
             if(getSKY && getPTY){
                 const sky =  getSKY.fcstValue;
                 const pty =  getPTY.fcstValue;
+
+                console.log("sky -- "+sky)
+                console.log(pty)
     
                 if(pty == 1 || pty == 2 || pty == 4){
                     setTodayWeather("rain")
@@ -206,9 +211,11 @@ function ToDosPage() {
                         setTodayWeather("partCloud")
                     }else if(sky == 4){
                         setTodayWeather("cloud")
-                    }
+                    } 
                 }
 
+            }else{
+                setTodayWeather("no")
             }
         } else if (subDate < 8 && subDate >= 3){
             if(weatherMdData[forecast07]=="맑음"){
