@@ -184,7 +184,6 @@ function ToDosPage() {
             subDate = subDate+1;
         }
         
-        console.log(subDate)
         
         const forecast07 = `wf${subDate}Pm`
         const forecast10 = `wf${subDate}`
@@ -196,9 +195,6 @@ function ToDosPage() {
             if(getSKY && getPTY){
                 const sky =  getSKY.fcstValue;
                 const pty =  getPTY.fcstValue;
-
-                console.log("sky -- "+sky)
-                console.log(pty)
     
                 if(pty == 1 || pty == 2 || pty == 4){
                     setTodayWeather("rain")
