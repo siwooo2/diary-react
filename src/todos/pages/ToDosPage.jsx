@@ -290,7 +290,7 @@ function ToDosPage() {
 
     const conDate = (num) => {
         startDate.setDate(startDate.getDate() + num);
-        setDate(startDate);
+        setDate(startDate); 
     }
 
     const calendar = () => {
@@ -305,7 +305,7 @@ function ToDosPage() {
     const moveToday = () => {
         const today = new Date();
         setStartDate(today);
-        setDate(startDate);
+        setDate(today);
     }
 
     const moveHome = () => {
